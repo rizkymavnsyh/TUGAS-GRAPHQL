@@ -1,0 +1,24 @@
+services:
+  python-graphql-api:
+    build: .
+    container_name: starwars-python-graphql-api
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+      - /app/__pycache__
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DATABASE_NAME=starwars.db
+      - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
+      - DEBUG=True
+      - PORT=8000
+    command: uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+

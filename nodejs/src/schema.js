@@ -1,0 +1,97 @@
+import gql from 'graphql-tag';
+
+export const typeDefs = gql`
+  type Query {
+    allCharacters: [Character!]!
+    character(id: ID!): Character
+    allPlanets: [Planet!]!
+    planet(id: ID!): Planet
+    allStarships: [Starship!]!
+    starship(id: ID!): Starship
+  }
+
+  type Mutation {
+    createPlanet(input: CreatePlanetInput!): Planet
+    updatePlanet(input: UpdatePlanetInput!): Planet
+    deletePlanet(id: ID!): Boolean
+    createCharacter(input: CreateCharacterInput!): Character
+    updateCharacter(input: UpdateCharacterInput!): Character
+    deleteCharacter(id: ID!): Boolean
+    createStarship(input: CreateStarshipInput!): Starship
+    updateStarship(input: UpdateStarshipInput!): Starship
+    deleteStarship(id: ID!): Boolean
+    assignStarship(input: AssignStarshipInput!): Character
+  }
+
+  input CreatePlanetInput {
+    name: String!
+    climate: String
+    terrain: String
+  }
+
+  input UpdatePlanetInput {
+    id: ID!
+    name: String
+    climate: String
+    terrain: String
+  }
+
+  input CreateCharacterInput {
+    name: String!
+    species: String
+    homePlanetId: Int
+  }
+
+  input UpdateCharacterInput {
+    id: ID!
+    name: String
+    species: String
+    homePlanetId: Int
+  }
+
+  input CreateStarshipInput {
+    name: String!
+    model: String
+    manufacturer: String
+  }
+
+  input UpdateStarshipInput {
+    id: ID!
+    name: String
+    model: String
+    manufacturer: String
+  }
+
+  input AssignStarshipInput {
+    characterId: ID!
+    starshipId: ID!
+  }
+
+  type Character {
+    id: ID!
+    name: String!
+    species: String
+    homePlanet: Planet
+    pilotedStarships: [Starship!]!
+  }
+
+  type Planet {
+    id: ID!
+    name: String!
+    climate: String
+    terrain: String
+    residents: [Character!]!
+  }
+
+  type Starship {
+    id: ID!
+    name: String!
+    model: String
+    manufacturer: String
+    pilots: [Character!]!
+  }
+`;
+
+
+
+
