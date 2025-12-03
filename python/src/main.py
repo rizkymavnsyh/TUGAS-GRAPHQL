@@ -134,6 +134,12 @@ async def startup_event():
     print(f"   - Open ReDoc: http://localhost:{PORT}/redoc")
     print("   - Use Insomnia, Postman, or curl to test queries")
     print("   - Press Ctrl+C to stop the server")
+    print("")
+    print("🔐  Authentication:")
+    print("   - Login: POST /auth/login (username: admin, password: admin123)")
+    print("   - Add token to HTTP Headers (NOT GraphQL Variables!)")
+    print("   - Format: Authorization: Bearer <token>")
+    print("   - See CARA_MENGGUNAKAN_AUTH_GRAPHQL.md for details")
     print("═══════════════════════════════════════════════════════════")
     print("")
 

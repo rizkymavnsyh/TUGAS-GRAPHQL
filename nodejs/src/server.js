@@ -6,6 +6,8 @@ import http from 'http';
 import cors from 'cors';
 import swaggerUi from 'swagger-ui-express';
 import swaggerJsdoc from 'swagger-jsdoc';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 import { typeDefs } from './schema.js';
 import { resolvers } from './resolvers.js';
 import { initDatabase, db } from './database.js';
@@ -22,6 +24,9 @@ import { logger, getLogger, logGraphQLQuery, logGraphQLError } from './logger.js
 import { createLoaders } from './dataloaders.js';
 
 const PORT = process.env.PORT || 4000;
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 async function startServer() {
   const app = express();
@@ -87,7 +92,7 @@ async function startServer() {
       },
       servers: [
         {
-          url: `http:
+          url: `http://localhost:${PORT}`,
           description: 'Development server',
         },
       ],
@@ -103,10 +108,6 @@ async function startServer() {
         {
           name: 'authentication',
           description: 'Endpoints untuk autentikasi dan manajemen user',
-        },
-        {
-          name: 'graphql',
-          description: 'GraphQL endpoint dengan Apollo Studio Sandbox',
         },
       ],
       components: {
@@ -128,7 +129,7 @@ async function startServer() {
               },
               graphql: {
                 type: 'string',
-                example: 'http:
+                example: 'http://localhost:4000/graphql',
               },
               docs: {
                 type: 'string',
@@ -277,11 +278,21 @@ async function startServer() {
         },
       },
     },
-    apis: ['./src/server.js'],
+    apis: [join(__dirname, 'server.js')],
   };
 
   const swaggerSpec = swaggerJsdoc(swaggerOptions);
-  app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+  app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+    customCss: '.swagger-ui .topbar { display: none }',
+    customSiteTitle: 'Star Wars GraphQL API Documentation',
+    swaggerOptions: {
+      persistAuthorization: true,
+      displayRequestDuration: true,
+      filter: true,
+      showExtensions: true,
+      showCommonExtensions: true,
+    },
+  }));
 
   app.use(
     '/graphql',
@@ -295,21 +306,87 @@ async function startServer() {
     })
   );
 
-  
+  /**
+   * @swagger
+   * /:
+   *   get:
+   *     summary: Root endpoint dengan informasi API
+   *     description: Mengembalikan informasi dasar tentang API dan endpoint yang tersedia
+   *     tags: [root]
+   *     responses:
+   *       200:
+   *         description: Informasi API berhasil dikembalikan
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/RootResponse'
+   */
   app.get('/', (req, res) => {
     res.json({
       message: 'Selamat datang di Star Wars GraphQL API (Node.js + Apollo)!',
-      graphql: `http:
+      graphql: `http://localhost:${PORT}/graphql`,
       docs: 'Gunakan Apollo Studio atau GraphiQL client untuk test API',
     });
   });
 
-  
+  /**
+   * @swagger
+   * /health:
+   *   get:
+   *     summary: Health check endpoint
+   *     description: Mengembalikan status kesehatan server dan timestamp
+   *     tags: [health]
+   *     responses:
+   *       200:
+   *         description: Server sehat
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/HealthResponse'
+   */
   app.get('/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
   });
 
-  
+  /**
+   * @swagger
+   * /auth/register:
+   *   post:
+   *     summary: Register user baru
+   *     description: Membuat akun user baru dengan username, email, dan password
+   *     tags: [authentication]
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             $ref: '#/components/schemas/RegisterInput'
+   *     responses:
+   *       201:
+   *         description: User berhasil didaftarkan
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/RegisterResponse'
+   *       400:
+   *         description: Username atau email sudah terdaftar
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   *       422:
+   *         description: Validasi input gagal
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   *       500:
+   *         description: Error server
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   */
   app.post('/auth/register', express.json(), (req, res) => {
     try {
       const { username, email, password, role = 'user' } = req.body;
@@ -355,7 +432,45 @@ async function startServer() {
     }
   });
 
-  
+  /**
+   * @swagger
+   * /auth/login:
+   *   post:
+   *     summary: Login user
+   *     description: Login dengan username dan password untuk mendapatkan JWT access token
+   *     tags: [authentication]
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             $ref: '#/components/schemas/LoginInput'
+   *     responses:
+   *       200:
+   *         description: Login berhasil, token dikembalikan
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/LoginResponse'
+   *       401:
+   *         description: Username atau password salah
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   *       422:
+   *         description: Username dan password wajib diisi
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   *       500:
+   *         description: Error server
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   */
   app.post('/auth/login', express.json(), (req, res) => {
     try {
       const { username, password } = req.body;
@@ -394,7 +509,35 @@ async function startServer() {
     }
   });
 
-  
+  /**
+   * @swagger
+   * /auth/me:
+   *   get:
+   *     summary: Get current user info
+   *     description: Mengembalikan informasi user yang sedang login (memerlukan autentikasi)
+   *     tags: [authentication]
+   *     security:
+   *       - bearerAuth: []
+   *     responses:
+   *       200:
+   *         description: Informasi user berhasil dikembalikan
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/MeResponse'
+   *       401:
+   *         description: Autentikasi diperlukan atau token tidak valid
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   *       500:
+   *         description: Error server
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   */
   app.get('/auth/me', (req, res) => {
     try {
       const user = getCurrentUser(req);
@@ -419,14 +562,14 @@ async function startServer() {
   serverLogger.info('═══════════════════════════════════════════════════════════');
   serverLogger.info('🌟  Star Wars GraphQL API with Node.js & Apollo Server');
   serverLogger.info('═══════════════════════════════════════════════════════════');
-  serverLogger.info(`🚀  Server ready at: http:
-  serverLogger.info(`📖  Root endpoint: http:
-  serverLogger.info(`💚  Health check: http:
-  serverLogger.info(`📚  API Documentation: http:
+  serverLogger.info(`🚀  Server ready at: http://localhost:${PORT}/graphql`);
+  serverLogger.info(`📖  Root endpoint: http://localhost:${PORT}/`);
+  serverLogger.info(`💚  Health check: http://localhost:${PORT}/health`);
+  serverLogger.info(`📚  API Documentation: http://localhost:${PORT}/docs`);
   serverLogger.info('');
   serverLogger.info('📝  Tips:');
-  serverLogger.info(`   - Open Apollo Studio Sandbox: http:
-  serverLogger.info(`   - Open Swagger UI: http:
+  serverLogger.info(`   - Open Apollo Studio Sandbox: http://localhost:${PORT}/graphql`);
+  serverLogger.info(`   - Open Swagger UI: http://localhost:${PORT}/docs`);
   serverLogger.info('   - Use GraphiQL, Insomnia, or Postman to test queries');
   serverLogger.info('   - Press Ctrl+C to stop the server');
   serverLogger.info('═══════════════════════════════════════════════════════════');
@@ -437,14 +580,14 @@ async function startServer() {
     console.log('═══════════════════════════════════════════════════════════');
     console.log('🌟  Star Wars GraphQL API with Node.js & Apollo Server');
     console.log('═══════════════════════════════════════════════════════════');
-    console.log(`🚀  Server ready at: http:
-    console.log(`📖  Root endpoint: http:
-    console.log(`💚  Health check: http:
-    console.log(`📚  API Documentation: http:
+    console.log(`🚀  Server ready at: http://localhost:${PORT}/graphql`);
+    console.log(`📖  Root endpoint: http://localhost:${PORT}/`);
+    console.log(`💚  Health check: http://localhost:${PORT}/health`);
+    console.log(`📚  API Documentation: http://localhost:${PORT}/docs`);
     console.log('');
     console.log('📝  Tips:');
-    console.log(`   - Open Apollo Studio Sandbox: http:
-    console.log(`   - Open Swagger UI: http:
+    console.log(`   - Open Apollo Studio Sandbox: http://localhost:${PORT}/graphql`);
+    console.log(`   - Open Swagger UI: http://localhost:${PORT}/docs`);
     console.log('   - Use GraphiQL, Insomnia, or Postman to test queries');
     console.log('   - Press Ctrl+C to stop the server');
     console.log('═══════════════════════════════════════════════════════════');

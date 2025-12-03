@@ -155,9 +155,20 @@ def get_user_from_context(info):
         return None
 
 def require_auth(info):
+    """
+    Require authentication for GraphQL operations.
+    Raises GraphQLError if user is not authenticated.
+    
+    IMPORTANT: Authorization must be sent as HTTP Header, NOT as GraphQL variable!
+    Format: Authorization: Bearer <token>
+    """
     user = get_user_from_context(info)
     if not user:
-        raise Exception("Authentication required")
+        raise Exception(
+            "Authentication required. "
+            "Please add 'Authorization: Bearer <token>' to HTTP Headers (NOT GraphQL Variables!). "
+            "Login at /auth/login to get a token."
+        )
     return user
 
 def require_admin(info):
